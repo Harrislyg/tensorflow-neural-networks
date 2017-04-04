@@ -1,6 +1,6 @@
 '''
 
-RNN Example
+RNN Example with MINST dataset
 
 '''
 import tensorflow as tf
@@ -26,10 +26,10 @@ def recurrent_neural_network_model(x):
 	
 	layer = {'weights': tf.Variable(tf.random_normal([rnn_size, n_classes])), 'biases': tf.Variable(tf.random_normal([n_classes]))}
 
-	# reshape the matrix from (3,1,2) to (2,1,3). Converts each row into an array
+	# reshape the matrix from (3,1,2) to (2,1,3). Converts each row into an array by swapping the 0 dimension with the first dimension. (0 dimension refers to the row, 1 dimension refers to the column)
 	x = tf.transpose(x, [1,0,2])
 
-	# reshape the matrix to a matrice with column length = chunk size
+	# reshape the matrix to a matrice with column length = chunk size. This falttens the array by one dimension
 	x = tf.reshape(x, [-1, chunk_size])
 
 	# split the matrix along dimension 0 into n_chunks and return x
@@ -74,14 +74,3 @@ def train_neural_network(x):
 		print 'Accuracy: ', accuracy.eval({x:mnist.test.images.reshape((-1, n_chunks, chunk_size)), y:mnist.test.labels})
 
 train_neural_network(x)
-
-
-
-
-
-
-
-
-
-
-

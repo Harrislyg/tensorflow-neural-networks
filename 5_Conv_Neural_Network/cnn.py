@@ -1,14 +1,6 @@
 '''
 
-input > weight > hidden layer 1 (activation function) > weights > hidden layer 2 (activation function) > weights > output layer
-
-compare output to intended output > cost function (cross entropy)
-
-optimization function (optimizer) > minimize cost (AdamOptimizer....SGD, AdaGrad)
-
-backpropogation 
-
-feed forward + back propagation = epoch
+cnn example
 
 '''
 import tensorflow as tf
@@ -20,49 +12,56 @@ mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 # 10 classes, 0-9
 # 0 = [1,0,0,0,0,0,0,0,0,0] => one hot encoding
 
-n_nodes_hl1 = 500
-n_nodes_hl2 = 500
-n_nodes_hl3 = 500
-
 n_classes = 10
-batch_size = 100
+batch_size = 128
 
 # place holder function defines the structure of the x varaible. Will throw an error if we try to fit a matrice that is not of dimension - 784 flatten
 # The None dimension is a placeholder for the batch size. At runtime, TensorFlow will accept any batch size greater than 0.
 x = tf.placeholder('float', [None, 784])
 y = tf.placeholder('float')
 
-def neural_network_model(data):
+keep_rate = 0.8
+keep_prob = tf.placeholder(tf.float32)
+
+def conv2d(x, W):
+	return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')
+
+def maxpool2d(x):
+	return tf.nn.max_pool(x, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+
+def convolutional_neural_network(x):
 	
-	hidden_1_layer = {'weights': tf.Variable(tf.random_normal([784, n_nodes_hl1])), 'biases': tf.Variable(tf.random_normal([n_nodes_hl1]))}
+	weights = {'W_conv1': tf.Variable(tf.random_normal([5,5,1,32])),
+			   'W_conv2': tf.Variable(tf.random_normal([5,5,32,64])),
+			   'W_fc': tf.Variable(tf.random_normal([7*7*64,1024])),
+			   'out': tf.Variable(tf.random_normal([1024, n_classes]))
+			  }
 
-	hidden_2_layer = {'weights': tf.Variable(tf.random_normal([n_nodes_hl1, n_nodes_hl2])), 'biases': tf.Variable(tf.random_normal([n_nodes_hl2]))}
+	biases = {'b_conv1': tf.Variable(tf.random_normal([32])),
+			   'b_conv2': tf.Variable(tf.random_normal([64])),
+			   'b_fc': tf.Variable(tf.random_normal([1024])),
+			   'out': tf.Variable(tf.random_normal([n_classes]))
+			  }
 
-	hidden_3_layer = {'weights': tf.Variable(tf.random_normal([n_nodes_hl2, n_nodes_hl3])), 'biases': tf.Variable(tf.random_normal([n_nodes_hl3]))}
+	x = tf.reshape(x, reshape=[-1, 28, 28, 1])
 
-	output_layer = {'weights': tf.Variable(tf.random_normal([n_nodes_hl3, n_classes])), 'biases': tf.Variable(tf.random_normal([n_classes]))}
+	conv1 =  tf.nn.relu( conv2d(x,weights['W_conv1']) + b_conv1 )
+	conv1 =  maxpool2d(conv1)
 
-	# Model: (input_data * weight) + biases => neurons aer fired even though input_data = 0
+	conv2 =  tf.nn.relu( conv2d(conv1,weights['W_conv2']) + b_conv2 )
+	conv2 = maxpool2d(conv2)
 
-	l1 = tf.add(tf.matmul(data, hidden_1_layer['weights']), hidden_1_layer['biases'])
-	l1 = tf.nn.relu(l1) # Activation function
+	fc = tf.reshape(conv2, [-1, 7*7*64])
+	fc = tf.nn.relu(tf.matmul(fc, weights['W_fc']) + biases['b_fc'])
 
-	l2 = tf.add(tf.matmul(l1, hidden_2_layer['weights']), hidden_2_layer['biases'])
-	l2 = tf.nn.relu(l2)
+	fc = tf.nn.dropout(fc, keep_rate)
 
-	l3 = tf.add(tf.matmul(l2, hidden_3_layer['weights']), hidden_3_layer['biases'])
-	l3 = tf.nn.relu(l3)
-
-	output = tf.add(tf.matmul(l3, output_layer['weights']), output_layer['biases'])
-
-	print 'output: ', output
-
-	print output.shape
+	output = tf.matmul(fc, weights['out']) + biases['out']
 
 	return output
 
 def train_neural_network(x):
-	prediction = neural_network_model(x)
+	prediction = convolutional_neural_network(x)
 	cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y))
 
 	# Default learning_rate = 0.001
